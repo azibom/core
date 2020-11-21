@@ -9,8 +9,6 @@
 
 namespace Flarum\Post;
 
-use Flarum\Database\AbstractModel;
-use Flarum\Database\ScopeVisibilityTrait;
 use Flarum\Event\ConfigurePostTypes;
 use Flarum\Foundation\AbstractServiceProvider;
 use Flarum\Post\Access\ScopePostVisibility;
