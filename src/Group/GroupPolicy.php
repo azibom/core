@@ -22,18 +22,6 @@ class GroupPolicy extends AbstractPolicy
 
     /**
      * @param User $actor
-     * @param string $ability
-     * @return bool|null
-     */
-    public function can(User $actor, $ability)
-    {
-        if ($actor->hasPermission('group.'.$ability)) {
-            return true;
-        }
-    }
-
-    /**
-     * @param User $actor
      * @param Builder $query
      */
     public function find(User $actor, Builder $query)

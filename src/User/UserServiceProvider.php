@@ -9,9 +9,15 @@
 
 namespace Flarum\User;
 
+use Flarum\Discussion\Access\DiscussionPolicy;
+use Flarum\Discussion\Discussion;
 use Flarum\Event\ConfigureUserPreferences;
 use Flarum\Foundation\AbstractServiceProvider;
 use Flarum\Foundation\ContainerUtil;
+use Flarum\Group\Access\GroupPolicy;
+use Flarum\Group\Group;
+use Flarum\Post\Access\PostPolicy;
+use Flarum\Post\Post;
 use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\User\DisplayName\DriverInterface;
 use Flarum\User\DisplayName\UsernameDriver;
@@ -35,6 +41,23 @@ class UserServiceProvider extends AbstractServiceProvider
 
         $this->app->singleton('flarum.user.group_processors', function () {
             return [];
+        });
+
+        $this->app->singleton('flarum.policies', function () {
+            return [
+                Discussion::class => [DiscussionPolicy::class],
+                Group::class => [GroupPolicy::class],
+                Post::class => [PostPolicy::class],
+                User::class => [Access\UserPolicy::class],
+            ];
+        });
+
+        $this->app->singleton('flarum.policies.compiled', function () {
+            return array_map(function($modelPolicies) {
+                return array_map(function($rawPolicy) {
+                    return $this->app->make($rawPolicy);
+                }, $modelPolicies);
+            }, $this->app->make('flarum.policies'));
         });
     }
 
@@ -81,11 +104,11 @@ class UserServiceProvider extends AbstractServiceProvider
             User::addGroupProcessor(ContainerUtil::wrapCallback($callback, $this->app));
         }
 
-        User::setHasher($this->app->make('hash'));
-        User::setGate($this->app->make(Gate::class));
-        User::setDisplayNameDriver($this->app->make('flarum.user.display_name.driver'));
-
         $events = $this->app->make('events');
+
+        User::setHasher($this->app->make('hash'));
+        User::setGate(new Access\Gate($events, $this->app->make('flarum.policies.compiled')));
+        User::setDisplayNameDriver($this->app->make('flarum.user.display_name.driver'));
 
         $events->listen(Saving::class, SelfDemotionGuard::class);
         $events->listen(Registered::class, AccountActivationMailer::class);
